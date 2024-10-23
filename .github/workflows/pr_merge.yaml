@@ -57,12 +57,12 @@ jobs:
       - name: Terraform Plan
         id: plan
         if: github.event_name == 'pull_request'  # Run plan only on pull requests
-        run: terraform plan -var-file=gd-sh-ses.tfvars
+        run: terraform plan --target=module.lambda_function -var-file=gd-sh-ses.tfvars
 
       - name: Terraform Apply
         id: apply
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Apply only on merges to main
-        run: terraform apply -var-file=gd-sh-ses.tfvars -auto-approve
+        run: terraform apply --target=module.lambda_function -var-file=gd-sh-ses.tfvars -auto-approve
 
       - name: Conclusion
         if: ${{ always() }}  # Always runs to print a message
