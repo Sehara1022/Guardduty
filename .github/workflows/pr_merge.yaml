@@ -1,74 +1,74 @@
-name: "guardduty_infra"
+# name: "guardduty_infra"
 
-on:
-  pull_request:
-    branches:
-      - main  # Triggers on pull requests to the main branch
-  push:
-    branches:
-      - main  # Triggers on pushes to the main branch (after merging)
+# on:
+#   pull_request:
+#     branches:
+#       - main  # Triggers on pull requests to the main branch
+#   push:
+#     branches:
+#       - main  # Triggers on pushes to the main branch (after merging)
 
-permissions:
-  id-token: write
-  contents: read
-  pull-requests: write
+# permissions:
+#   id-token: write
+#   contents: read
+#   pull-requests: write
 
-env:
-  TF_LOG: INFO
+# env:
+#   TF_LOG: INFO
 
-jobs:
-  terraform:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .  # Set the working directory once for all steps
+# jobs:
+#   terraform:
+#     runs-on: ubuntu-latest
+#     defaults:
+#       run:
+#         working-directory: .  # Set the working directory once for all steps
 
-    steps:
-      - name: Git checkout
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.event.pull_request.head.ref || 'main' }}  # Use PR branch or main
+#     steps:
+#       - name: Git checkout
+#         uses: actions/checkout@v3
+#         with:
+#           ref: ${{ github.event.pull_request.head.ref || 'main' }}  # Use PR branch or main
 
-      - name: Configure AWS credentials from AWS account
-        id: configure-aws
-        uses: aws-actions/configure-aws-credentials@v4  # Updated to v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+#       - name: Configure AWS credentials from AWS account
+#         id: configure-aws
+#         uses: aws-actions/configure-aws-credentials@v4  # Updated to v2
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Set up Terraform version
-        uses: hashicorp/setup-terraform@v3  # Updated to v2
-        with:
-          terraform_version: 1.7.2  # You can specify any version you want here
+#       - name: Set up Terraform version
+#         uses: hashicorp/setup-terraform@v3  # Updated to v2
+#         with:
+#           terraform_version: 1.7.2  # You can specify any version you want here
 
-      - name: Terraform Init
-        id: init
-        env:
-          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
-          AWS_BUCKET_KEY_NAME: ${{ secrets.AWS_BUCKET_KEY_NAME }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: terraform init -backend-config="bucket=${AWS_BUCKET_NAME}" -backend-config="key=${AWS_BUCKET_KEY_NAME}" -backend-config="region=${AWS_REGION}"
+#       - name: Terraform Init
+#         id: init
+#         env:
+#           AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+#           AWS_BUCKET_KEY_NAME: ${{ secrets.AWS_BUCKET_KEY_NAME }}
+#           AWS_REGION: ${{ secrets.AWS_REGION }}
+#         run: terraform init -backend-config="bucket=${AWS_BUCKET_NAME}" -backend-config="key=${AWS_BUCKET_KEY_NAME}" -backend-config="region=${AWS_REGION}"
 
-      - name: Terraform Validate
-        id: validate
-        run: terraform validate -no-color  # Validate occurs after init
+#       - name: Terraform Validate
+#         id: validate
+#         run: terraform validate -no-color  # Validate occurs after init
 
-      - name: Terraform Plan
-        id: plan
-        if: github.event_name == 'pull_request'  # Run plan only on pull requests
-        run: terraform plan --target=module.lambda_function -var-file=gd-sh-ses.tfvars
+#       - name: Terraform Plan
+#         id: plan
+#         if: github.event_name == 'pull_request'  # Run plan only on pull requests
+#         run: terraform plan --target=module.lambda_function -var-file=gd-sh-ses.tfvars
 
-      - name: Terraform Apply
-        id: apply
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Apply only on merges to main
-        run: terraform apply --target=module.lambda_function -var-file=gd-sh-ses.tfvars -auto-approve
+#       - name: Terraform Apply
+#         id: apply
+#         if: github.event_name == 'push' && github.ref == 'refs/heads/main'  # Apply only on merges to main
+#         run: terraform apply --target=module.lambda_function -var-file=gd-sh-ses.tfvars -auto-approve
 
-      - name: Conclusion
-        if: ${{ always() }}  # Always runs to print a message
-        run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            echo "Terraform plan completed successfully."
-          elif [ "${{ github.event_name }}" == "push" ]; then
-            echo "Terraform apply completed after merge."
-          fi
+#       - name: Conclusion
+#         if: ${{ always() }}  # Always runs to print a message
+#         run: |
+#           if [ "${{ github.event_name }}" == "pull_request" ]; then
+#             echo "Terraform plan completed successfully."
+#           elif [ "${{ github.event_name }}" == "push" ]; then
+#             echo "Terraform apply completed after merge."
+#           fi
